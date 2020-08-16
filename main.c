@@ -5,22 +5,27 @@
 #include "alloc.h"
 
 int main(int argc, char *argv[]) {
-	unsigned int total_len = 0;
-	for (int i = 0; i < argc; ++i) {
-		total_len += strlen(argv[i]);
-	}
-	total_len += 1; //Null terminator
-
-	char *str = alloc(total_len);
-
-	char* endptr = str;
-
-	for (int i = 0; i < argc; ++i) {
-		endptr = stpcpy(endptr, argv[i]);
+	char **str_arr = alloc(sizeof(void*) * argc);
+	if (str_arr == NULL) {
+		fprintf(stderr, "Failed to allocate memory at line %d!\n", __LINE__);
+		return -1;
 	}
 
-	puts(str);
+	for (int i = 0; i < argc; ++i) {
+		unsigned int copy_len = strlen(argv[i]) + 1;
+		str_arr[i] = alloc(copy_len);
+		if (str_arr[i] == NULL) {
+			fprintf(stderr, "Failed to allocate memory at line %d!\n", __LINE__);
+			return -1;
+		}
+		strncpy(str_arr[i], argv[i], copy_len);
+	}
 
-	dealloc(str);
+	for (int i = 0; i < argc; ++i) {
+		puts(str_arr[i]);
+		dealloc(str_arr[i]);
+	}
+
+	dealloc(str_arr);
 	return 0;
 }

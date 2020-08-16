@@ -59,6 +59,8 @@ static int heap_init() {
 	}
 
 	mem_list = init_mem_node(mem_base_ptr, ALLOC_SIZE, 0);
+
+	memory_allocated += ALLOC_SIZE;
 	
 	return 0;
 }
@@ -89,6 +91,8 @@ void *alloc(size_t size) {
 
 				new_node->prev = cur_node;
 				new_node->next = tmp_node;
+
+				cur_node->next = new_node;
 
 				if (tmp_node != NULL) {
 					tmp_node->prev = new_node;
