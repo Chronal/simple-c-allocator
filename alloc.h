@@ -1,3 +1,6 @@
+#ifndef ALLOC_H
+#define ALLOC_H
+
 #include <unistd.h>
 
 extern void *alloc(size_t size);
@@ -13,3 +16,4 @@ struct mem_node {
 	struct mem_node *next;
 	struct mem_node *prev;
 };
+#endif

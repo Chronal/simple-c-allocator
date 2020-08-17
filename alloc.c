@@ -12,7 +12,7 @@ static mem_node_t *mem_list = NULL;
 static mem_node_t *init_mem_node(void *addr, size_t size, unsigned char is_allocated) {
 	mem_node_t *node = addr;
 
-	node->mem_ptr = mem_base_ptr + sizeof(mem_node_t);
+	node->mem_ptr = addr + sizeof(mem_node_t);
 	node->nbytes = size - sizeof(mem_node_t);
 	node->is_allocated = is_allocated;
 	node->next = NULL;
@@ -79,7 +79,10 @@ void *alloc(size_t size) {
 			final_node = cur_node;
 		}
 		
-		if (cur_node->nbytes >= size && cur_node->is_allocated == 0) {
+		if (cur_node->nbytes == size && cur_node->is_allocated == 0) {
+			cur_node->is_allocated = 1;
+			return (void*)cur_node->mem_ptr;
+		} else if (cur_node->nbytes > size && cur_node->is_allocated == 0) {
 			size_t remaining_bytes = cur_node->nbytes - size;
 			if (remaining_bytes > sizeof(mem_node_t)) {
 				cur_node->nbytes = size;
@@ -89,10 +92,9 @@ void *alloc(size_t size) {
 
 				mem_node_t *tmp_node = cur_node->next;
 
+				cur_node->next = new_node;
 				new_node->prev = cur_node;
 				new_node->next = tmp_node;
-
-				cur_node->next = new_node;
 
 				if (tmp_node != NULL) {
 					tmp_node->prev = new_node;
@@ -125,21 +127,44 @@ void *alloc(size_t size) {
 	return (void*)new_mem_node->mem_ptr;	
 }
 
+
+
+static void defrag() {
+	for (mem_node_t *node = mem_list; node != NULL; node = node->next) {
+		if (node->is_allocated == 0) {
+
+			mem_node_t *following_node = node->next;
+			size_t nfollowing_nodes = 0;
+			size_t total_following_memory = 0;
+
+			while (following_node != NULL && following_node->is_allocated == 0) {
+				nfollowing_nodes++;
+				total_following_memory += following_node->nbytes;
+				following_node = following_node->next;
+			}
+
+			node->nbytes += nfollowing_nodes * sizeof(mem_node_t);
+			node->nbytes += total_following_memory;
+
+			node->next = following_node;
+			if (following_node != NULL) {
+				following_node->prev = node;
+			}
+		}
+	}
+}
+
 void dealloc(void *ptr) {
 	mem_node_t *node = mem_list;
 	while (node != NULL) {
-		if (ptr == node->mem_ptr) {
+		if (ptr == node->mem_ptr && node->is_allocated == 1) {
 			node->is_allocated = 0;
 			break;
 		}
 		node = node->next;
 	}
+	defrag();
 }
-
-
-//static void defrag() {
-//
-//}
 
 void *resize_alloc(void *ptr, size_t size) {
 	if (size == 0) {
@@ -147,13 +172,13 @@ void *resize_alloc(void *ptr, size_t size) {
 	}
 
 	int found = 0;
+
 	mem_node_t *node = mem_list;
-	while (node != NULL) {
+	for (; node != NULL; node = node->next) {
 		if (node->mem_ptr == ptr) {
 			found = 1;
 			break;
 		}
-		node = node->next;
 	}
 
 	if (found == 0) {
@@ -161,7 +186,7 @@ void *resize_alloc(void *ptr, size_t size) {
 	}
 
 	void *new_ptr = alloc(size);
-	if (new_ptr != NULL) {
+	if (new_ptr == NULL) {
 		return NULL;
 	}
 	
@@ -173,3 +198,18 @@ void *resize_alloc(void *ptr, size_t size) {
 	dealloc(ptr);
 	return new_ptr;
 }
+
+#ifdef DEBUG_H
+size_t mem_list_len() {
+	mem_node_t *node = mem_list; 
+	if (node == NULL) {
+		return 0;
+	}
+	size_t len = 0;
+	while (node != NULL) {
+		len++;
+		node = node->next;
+	}
+	return len;
+}
+#endif

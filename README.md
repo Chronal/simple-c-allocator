@@ -1,5 +1,3 @@
 # Simple Allocator
 A simple memory allocator (malloc/realloc/free) written as an exercise. 
-Could be improved by adding a function to defragment the memory and to make it thread safe.
-
-NOT CURRENTLY WORKING!
+Could be improved making it thread safe. May contains bugs.
